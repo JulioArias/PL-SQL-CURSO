@@ -1,0 +1,26 @@
+-- CoMPILAR PAQUETES VALIDOS
+-- Se crea o reemplaza el paquete llamado PACK1
+CREATE OR REPLACE PACKAGE PACK1 IS
+    -- Declaración de la función F1 que retorna un número
+    FUNCTION F1 RETURN NUMBER;
+    
+    -- Declaración del procedimiento P1
+    PROCEDURE P1;
+    
+    -- Declaración del procedimiento P2
+    PROCEDURE P2;
+END;
+/
+-- Consulta para obtener información sobre los objetos del usuario cuyo nombre es 'PACK1'
+SELECT * FROM USER_OBJECTS WHERE OBJECT_NAME LIKE 'PACK1';
+
+-- Se crea o reemplaza el cuerpo del paquete llamado PACK1
+CREATE OR REPLACE PACKAGE BODY PACK1 IS
+    -- Implementación de la función F1 que retorna un número
+    FUNCTION F1 RETURN NUMBER IS
+    BEGIN
+        -- La función retorna el valor 0
+        RETURN 0;
+    END;
+END;
+/
