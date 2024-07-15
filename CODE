@@ -24,3 +24,585 @@ CREATE OR REPLACE PACKAGE BODY PACK1 IS
     END;
 END;
 /
+
+-- Crear o reemplazar un procedimiento llamado PROC1
+CREATE OR REPLACE PROCEDURE PROC1
+IS
+BEGIN
+	NULL; -- El procedimiento no hace nada (sentencia NULL)
+END;
+/
+
+-- Seleccionar todos los objetos de la tabla user_objects cuyos nombres comienzan con 'PROC'
+SELECT * FROM USER_OBJECTS WHERE OBJECT_NAME LIKE 'PROC%';
+
+-- Crear o reemplazar un procedimiento llamado PROC2
+CREATE OR REPLACE PROCEDURE PROC2
+IS
+BEGIN
+	PROC1; -- Llamar al procedimiento PROC1
+END;
+/
+
+-- Seleccionar todas las dependencias del procedimiento llamado 'PROC2'
+SELECT * FROM USER_DEPENDENCIES WHERE NAME='PROC2';
+
+-- Recompilar el procedimiento llamado PROC2
+ALTER PROCEDURE PROC2 COMPILE;
+
+-- Describir la estructura de la tabla USER_DEPENDENCIES
+DESC USER_DEPENDENCIES;
+-- Seleccionar todas las filas de la tabla USER_DEPENDENCIES donde el nombre referenciado es 'PRUEBA'
+SELECT * FROM USER_DEPENDENCIES WHERE REFERENCED_NAME='PRUEBA';
+-- Crear o reemplazar un procedimiento llamado PRUEBA_P
+CREATE OR REPLACE PROCEDURE PRUEBA_P
+IS
+    X NUMBER; -- Declarar una variable X de tipo NUMBER
+BEGIN 
+    -- Asignar el conteo de filas de PRUEBA_V a la variable X
+    SELECT COUNT(*) INTO X FROM PRUEBA_V;
+END;
+/
+-- Seleccionar todas las filas de la tabla USER_DEPENDENCIES donde el nombre referenciado es 'PRUEBA_V'
+SELECT * FROM USER_DEPENDENCIES WHERE REFERENCED_NAME='PRUEBA_V';
+-- Ejecutar la función deptree_fill para llenar la tabla DEPTREE con dependencias de objetos
+-- ParÃ¡metros: tipo de objeto ('TABLE'), esquema ('HR') y nombre del objeto ('PRUEBA')
+EXECUTE deptree_fill('TABLE','HR','PRUEBA');
+-- Seleccionar todas las filas de la tabla DEPTREE
+SELECT * FROM DEPTREE;
+-- Formatear y seleccionar las dependencias desde la tabla DEPTREE
+SELECT LPAD(SEQ#,NESTED_LEVEL*1+1,'*') ||'  '||TYPE||' '||SCHEMA||' '||NAME FROM DEPTREE;
+
+
+DECLARE 
+    -- Declarar un tipo de cursor de referencia
+    TYPE CUR_REF1 IS REF CURSOR;
+    -- Declarar una variable de tipo cursor de referencia
+    C1 CUR_REF1; 
+    -- Declarar una variable de tipo ROWTYPE basada en la tabla EMPLOYEES
+    EMPLEADOS EMPLOYEES%ROWTYPE;
+    -- Declarar una variable de tipo ROWTYPE basada en la tabla DEPARTMENTS
+    DEPARTAMENTOS DEPARTMENTS%ROWTYPE;
+BEGIN
+    -- Abrir el cursor C1 para ejecutar una consulta que selecciona todas las filas de EMPLOYEES
+    OPEN C1 FOR SELECT * FROM EMPLOYEES;
+    -- Obtener la primera fila de resultados de la consulta en la variable EMPLEADOS
+    FETCH C1 INTO EMPLEADOS;
+    -- Imprimir el salario del empleado usando DBMS_OUTPUT.PUT_LINE
+    DBMS_OUTPUT.PUT_LINE(EMPLEADOS.SALARY);
+        
+    -- Abrir el cursor C1 para ejecutar una consulta que selecciona todas las filas de DEPARTMENTS
+    OPEN C1 FOR SELECT * FROM DEPARTMENTS;
+    -- Obtener la primera fila de resultados de la consulta en la variable DEPARTAMENTOS
+    FETCH C1 INTO DEPARTAMENTOS;
+    -- Imprimir el nombre del departamento usando DBMS_OUTPUT.PUT_LINE
+    DBMS_OUTPUT.PUT_LINE(DEPARTAMENTOS.DEPARTMENT_NAME);
+    -- Cerrar el cursor C1
+    CLOSE C1;
+END;
+/
+
+
+DECLARE
+    -- Definir un tipo de cursor de referencia que retorna filas del tipo ROWTYPE de la tabla DEPARTMENTS
+    TYPE CURSOR_VARIABLE IS REF CURSOR RETURN DEPARTMENTS%ROWTYPE;
+    -- Declarar una variable de cursor de referencia del tipo CURSOR_VARIABLE
+    V1 CURSOR_VARIABLE; 
+    -- Declarar una variable del tipo ROWTYPE basada en la tabla DEPARTMENTS
+    DEPARTAMENTOS DEPARTMENTS%ROWTYPE;
+BEGIN
+    -- Abrir el cursor V1 para ejecutar una consulta que selecciona todas las filas de DEPARTMENTS
+    -- donde el DEPARTMENT_ID es mayor a 150
+    OPEN V1 FOR SELECT * FROM DEPARTMENTS WHERE DEPARTMENT_ID > 150;
+    -- Obtener la primera fila de resultados de la consulta en la variable DEPARTAMENTOS
+    FETCH V1 INTO DEPARTAMENTOS;
+    -- Iniciar un bucle que se ejecutará mientras haya filas encontradas por el cursor V1
+    WHILE V1%FOUND LOOP
+        -- Imprimir el nombre del departamento usando DBMS_OUTPUT.PUT_LINE
+        DBMS_OUTPUT.PUT_LINE(DEPARTAMENTOS.DEPARTMENT_NAME);
+        -- Obtener la siguiente fila de resultados de la consulta en la variable DEPARTAMENTOS
+        FETCH V1 INTO DEPARTAMENTOS;
+    END LOOP;
+    -- Cerrar el cursor V1
+    CLOSE V1;
+END;
+/
+
+
+-- Habilitar la salida de servidor para que se puedan ver los resultados de DBMS_OUTPUT.PUT_LINE
+SET SERVEROUTPUT ON;
+DECLARE
+    -- Definir un tipo de cursor de referencia que retorna filas del tipo ROWTYPE de la tabla EMPLOYEES
+    TYPE CURSOR_VARIABLE IS REF CURSOR RETURN EMPLOYEES%ROWTYPE;
+    -- Declarar dos variables de cursor de referencia del tipo CURSOR_VARIABLE
+    V1 CURSOR_VARIABLE;
+    V2 CURSOR_VARIABLE;
+    -- Declarar una variable del tipo ROWTYPE basada en la tabla EMPLOYEES
+    EMPLEADOS EMPLOYEES%ROWTYPE;
+BEGIN
+    -- Abrir el cursor con la primera variable V1
+    OPEN V1 FOR SELECT * FROM EMPLOYEES ORDER BY FIRST_NAME;
+    -- Obtener la primera fila de resultados de la consulta en la variable EMPLEADOS
+    FETCH V1 INTO EMPLEADOS;
+    -- Imprimir el nombre y salario del empleado usando DBMS_OUTPUT.PUT_LINE
+    DBMS_OUTPUT.PUT_LINE(EMPLEADOS.FIRST_NAME || ' ' || EMPLEADOS.SALARY);
+    -- Asignar el cursor V1 a V2
+    V2 := V1;
+    -- Obtener la siguiente fila de resultados de la consulta en la variable EMPLEADOS usando el cursor V2
+    FETCH V2 INTO EMPLEADOS;
+    -- Imprimir el nombre y salario del empleado usando DBMS_OUTPUT.PUT_LINE
+    DBMS_OUTPUT.PUT_LINE(EMPLEADOS.FIRST_NAME || ' ' || EMPLEADOS.SALARY);
+    -- Obtener la siguiente fila de resultados de la consulta en la variable EMPLEADOS usando el cursor V1
+    FETCH V1 INTO EMPLEADOS;
+    -- Imprimir el nombre y salario del empleado usando DBMS_OUTPUT.PUT_LINE
+    DBMS_OUTPUT.PUT_LINE(EMPLEADOS.FIRST_NAME || ' ' || EMPLEADOS.SALARY);
+    -- Obtener la siguiente fila de resultados de la consulta en la variable EMPLEADOS usando el cursor V2
+    FETCH V2 INTO EMPLEADOS;
+    -- Imprimir el nombre y salario del empleado usando DBMS_OUTPUT.PUT_LINE
+    DBMS_OUTPUT.PUT_LINE(EMPLEADOS.FIRST_NAME || ' ' || EMPLEADOS.SALARY);
+    -- Cerrar el cursor V1
+    CLOSE V1;
+END;
+/
+
+
+-- Habilitar la salida del servidor para ver los resultados de DBMS_OUTPUT.PUT_LINE
+SET SERVEROUTPUT ON
+DECLARE
+  -- Definir un tipo de tabla asociativa para almacenar nombres de departamentos
+  TYPE DEPARTAMENTOS IS TABLE OF DEPARTMENTS.DEPARTMENT_NAME%TYPE 
+    INDEX BY PLS_INTEGER; 
+  -- Declarar una variable de tipo tabla asociativa de DEPARTAMENTOS
+  DEPTS DEPARTAMENTOS;
+  -- Definir un tipo de tabla asociativa para almacenar filas de la tabla EMPLOYEES
+  TYPE EMPLEADOS IS TABLE OF EMPLOYEES%ROWTYPE INDEX BY PLS_INTEGER;
+  -- Declarar una variable de tipo tabla asociativa de EMPLEADOS
+  EMPLES EMPLEADOS;
+  -- Definir un tipo de tabla asociativa para almacenar nombres de empleados, indexados por un tipo VARCHAR2
+  TYPE NOMBRE IS TABLE OF EMPLOYEES.FIRST_NAME%TYPE INDEX BY VARCHAR2(2);
+  -- Declarar una variable de tipo tabla asociativa de NOMBRE
+  NOMBRES NOMBRE;
+BEGIN
+  -- Asignar valores a la tabla DEPTS en diferentes índices
+  DEPTS(1) := 'HOLA';
+  DEPTS(2) := 'ADIOS';
+  DEPTS(50) := 'OTRO VALOR';
+  DEPTS(-10) := 'SIGUIENTE VALOR';
+  -- Asignar un valor a la tabla NOMBRES en el índice 'AA'
+  NOMBRES('AA') := 'PEDRO';
+  -- Asignar un valor al campo FIRST_NAME de la tabla EMPLES en el índice 10
+  EMPLES(10).FIRST_NAME := 'SERGIO';
+  -- Imprimir los valores almacenados en las tablas DEPTS, NOMBRES y EMPLES
+  DBMS_OUTPUT.PUT_LINE(DEPTS(2)); -- Imprime 'ADIOS'
+  DBMS_OUTPUT.PUT_LINE(DEPTS(-10)); -- Imprime 'SIGUIENTE VALOR'
+  DBMS_OUTPUT.PUT_LINE(NOMBRES('AA')); -- Imprime 'PEDRO'
+  DBMS_OUTPUT.PUT_LINE(EMPLES(10).FIRST_NAME); -- Imprime 'SERGIO'
+  -- Intentar imprimir el campo LAST_NAME de la tabla EMPLES en el índice 10
+  -- Esto podría no imprimir nada o generar un error si LAST_NAME no ha sido asignado
+  DBMS_OUTPUT.PUT_LINE(EMPLES(10).LAST_NAME); 
+END;
+/
+
+
+DECLARE
+  -- Definir un tipo de tabla asociativa para almacenar filas de la tabla EMPLOYEES
+  TYPE EMPLEADOS IS TABLE OF EMPLOYEES%ROWTYPE INDEX BY PLS_INTEGER;
+ 
+  -- Declarar una variable de tipo tabla asociativa de EMPLEADOS
+  EMPLES EMPLEADOS;
+BEGIN
+  -- Realizar una consulta para seleccionar todas las filas de la tabla EMPLOYEES donde el salario es mayor a 5000
+  -- y almacenar los resultados en la tabla asociativa EMPLES usando BULK COLLECT
+  SELECT * 
+  BULK COLLECT INTO EMPLES
+  FROM EMPLOYEES WHERE SALARY > 5000;
+  -- Recorrer los elementos de la tabla EMPLES usando un bucle FOR
+  FOR I IN 1..EMPLES.COUNT() LOOP
+    -- Imprimir el primer nombre de cada empleado usando DBMS_OUTPUT.PUT_LINE
+    DBMS_OUTPUT.PUT_LINE(EMPLES(I).FIRST_NAME);
+  END LOOP;
+END;
+/
+
+
+SET SERVEROUTPUT ON
+DECLARE
+  -- Declaramos un tipo de dato llamado EMPLEADO, que es un VARRAY (arreglo variable) de 10 elementos
+  -- y cada elemento es una fila de la tabla EMPLOYEES
+  TYPE EMPLEADO IS VARRAY(10) OF EMPLOYEES%ROWTYPE;
+  -- Declaramos un cursor C1 que selecciona las primeras 10 filas de la tabla EMPLOYEES
+  CURSOR C1 IS SELECT * 
+  FROM EMPLOYEES FETCH FIRST 10 ROWS ONLY;
+  -- Declaramos una variable CONTADOR que se inicializa en 1
+  CONTADOR NUMBER := 1;
+  -- Declaramos una variable EMPLEADOS del tipo EMPLEADO (el VARRAY declarado anteriormente)
+  EMPLEADOS EMPLEADO := EMPLEADO();
+BEGIN
+  -- Recorremos cada fila del cursor C1
+  FOR X IN C1 LOOP
+    -- Extendemos el tamaño del arreglo EMPLEADOS en 1
+    EMPLEADOS.EXTEND(1);
+    -- Asignamos la fila actual del cursor al elemento actual del arreglo EMPLEADOS
+    EMPLEADOS(CONTADOR) := X;
+    -- Incrementamos el contador en 1
+    CONTADOR := CONTADOR + 1;
+  END LOOP;
+  -- Recorremos el arreglo EMPLEADOS desde el primer hasta el último elemento
+  FOR I IN EMPLEADOS.FIRST..EMPLEADOS.LAST LOOP
+    -- Mostramos el nombre y salario del empleado actual
+    DBMS_OUTPUT.PUT_LINE(EMPLEADOS(I).FIRST_NAME || ' ' || EMPLEADOS(I).SALARY);
+  END LOOP;
+END;
+
+
+-- Creación de la tabla PRUEBA con tres columnas: C1 (NUMBER), C2 (DATO) y C3 (VARCHAR2 de 60 caracteres)
+CREATE TABLE PRUEBA (C1 NUMBER, C2 DATO, C3 VARCHAR2(60));
+-- Descripción de la tabla PRUEBA
+DESC PRUEBA;
+-- Descripción del tipo de dato DATO
+DESC DATO;
+-- Selección de todos los tipos de usuario definidos en la base de datos
+SELECT * FROM USER_TYPES;
+-- Selección de todos los VARRAYS de usuario definidos en la base de datos
+SELECT * FROM USER_VARRAYS;
+-- Selección de todos los registros de la tabla PRUEBA
+SELECT * FROM PRUEBA;
+-- Inserción de un registro en la tabla PRUEBA
+INSERT INTO PRUEBA VALUES(100, DATO('UNO', 'DOS'), 'EJEMPLO');
+-- Inserción de otro registro en la tabla PRUEBA
+INSERT INTO PRUEBA VALUES(100, DATO('AA', 'BB', 'CCC', 'DDD'), 'EJEMPLO');
+-- Selección de la columna C2 de la tabla PRUEBA
+SELECT C2 FROM PRUEBA;
+-- Selección del primer elemento de la columna C2 de la tabla PRUEBA
+SELECT C2(1) FROM PRUEBA;
+-- Selección de las columnas C1, T2.*, y C3 de la tabla PRUEBA, descomponiendo el VARRAY C2 en una tabla temporal T2
+-- y filtrando los registros donde C1 sea igual a 200
+SELECT C1, T2.*, C3
+FROM PRUEBA, table(PRUEBA.C2) T2  
+WHERE C1=200;
+-- Inserción de otro registro en la tabla PRUEBA
+INSERT INTO PRUEBA VALUES(200, DATO('AA1', 'BB1', 'CCC1', 'DDD1'), 'OTRO EJEMPLO');
+
+
+SET SERVEROUTPUT ON
+DECLARE
+  -- Declaramos un tipo de dato llamado EMPLEADO, que es un VARRAY (arreglo variable) de 10 elementos
+  -- y cada elemento es una fila de la tabla EMPLOYEES
+  TYPE EMPLEADO IS VARRAY(10) OF EMPLOYEES%ROWTYPE; 
+  -- Declaramos una variable EMPLEADOS del tipo EMPLEADO (el VARRAY declarado anteriormente)
+  EMPLEADOS EMPLEADO := EMPLEADO();
+BEGIN
+  -- Utilizamos BULK COLLECT para seleccionar las primeras 10 filas de la tabla EMPLOYEES y almacenarlas en el VARRAY EMPLEADOS
+  SELECT * BULK COLLECT INTO EMPLEADOS
+  FROM EMPLOYEES FETCH FIRST 10 ROWS ONLY;
+  -- Recorremos el VARRAY EMPLEADOS desde el primer hasta el último elemento
+  FOR I IN EMPLEADOS.FIRST()..EMPLEADOS.LAST() LOOP
+    -- Mostramos el nombre y salario del empleado actual
+    DBMS_OUTPUT.PUT_LINE(EMPLEADOS(I).FIRST_NAME || ' ' || EMPLEADOS(I).SALARY);
+  END LOOP;
+  -- Mostramos el índice del último elemento del VARRAY EMPLEADOS
+  DBMS_OUTPUT.PUT_LINE(EMPLEADOS.LAST());
+  -- Mostramos el índice del primer elemento del VARRAY EMPLEADOS
+  DBMS_OUTPUT.PUT_LINE(EMPLEADOS.FIRST());
+  -- Mostramos el índice del siguiente elemento después del primer elemento
+  DBMS_OUTPUT.PUT_LINE(EMPLEADOS.NEXT(1));
+  -- Intentamos mostrar el índice del siguiente elemento después del décimo elemento
+  DBMS_OUTPUT.PUT_LINE(EMPLEADOS.NEXT(10));
+  -- Verificamos si existe un elemento en la posición 20 del VARRAY EMPLEADOS
+  IF EMPLEADOS.EXISTS(20) THEN
+    DBMS_OUTPUT.PUT_LINE('EXISTE');
+  ELSE
+    DBMS_OUTPUT.PUT_LINE('NO EXISTE');
+  END IF;
+  -- Descomentar la siguiente línea si se desea eliminar el segundo elemento del VARRAY EMPLEADOS
+  -- EMPLEADOS.DELETE(2);
+END;
+
+
+-- Crear o reemplazar el tipo EMPLEADO como una tabla (colección) de cadenas de texto (VARCHAR2 de 100 caracteres)
+CREATE OR REPLACE TYPE EMPLEADO IS TABLE OF VARCHAR2(100);
+/
+-- Habilitar la salida del servidor para mostrar mensajes
+SET SERVEROUTPUT ON
+DECLARE
+  -- Declarar una variable EMPLEADOS del tipo EMPLEADO
+  EMPLEADOS EMPLEADO;
+BEGIN 
+  -- Inicializar la variable EMPLEADOS con una lista de nombres
+  EMPLEADOS := EMPLEADO('SERGIO', 'ALBERTO', 'ROSA');
+  -- Mostrar el primer nombre en la colección EMPLEADOS
+  DBMS_OUTPUT.PUT_LINE(EMPLEADOS(1));
+END;
+/
+-- Describir la estructura del tipo EMPLEADO
+DESC EMPLEADO
+/
+-- Seleccionar todos los tipos de usuario definidos en la base de datos
+SELECT * FROM USER_TYPES;
+/
+
+
+-- Crear una tabla llamada PRU_LOB con tres columnas:
+-- CODIGO de tipo NUMBER, NOMBRE de tipo VARCHAR2(100) y DATOS de tipo CLOB (Character Large Object)
+CREATE TABLE PRU_LOB
+(
+  CODIGO NUMBER,
+  NOMBRE VARCHAR2(100),
+  DATOS CLOB
+);
+-- Describir la estructura de la tabla PRU_LOB
+DESC PRU_LOB;
+-- Insertar un registro en la tabla PRU_LOB con valores para CODIGO, NOMBRE y DATOS
+INSERT INTO PRU_LOB VALUES(1, 'PEDRO', 'DSFJKDSAFKJSDAKLFJKLDSAJFLKJDSLKFJKLDSJAFLKDJSAKFD SA');
+-- Seleccionar todos los registros de la tabla PRU_LOB
+SELECT * FROM PRU_LOB;
+-- Alterar la tabla PRU_LOB para añadir una nueva columna llamada FOTO de tipo BLOB (Binary Large Object)
+ALTER TABLE PRU_LOB ADD (FOTO BLOB);
+-- Describir la estructura de la tabla PRU_LOB después de añadir la nueva columna
+DESC PRU_LOB;
+-- Insertar un registro en la tabla PRU_LOB con valores para CODIGO, NOMBRE, DATOS y FOTO
+INSERT INTO PRU_LOB VALUES(2, 'ROSA', 'DSFJKDSAFKJSDAKLFJKLDSAJFLKJDSLKFJKLDSJAFLKDJSAKFD SA', 'KKKÑLOPSDFL,DSIMFDSJ');
+-- DBMS_LOB es un paquete PL/SQL que proporciona rutinas para trabajar con LOBs (Large Objects), como CLOBs y BLOBs.
+-- Algunas de las funcionalidades que proporciona DBMS_LOB incluyen:
+-- - Crear y eliminar LOBs temporales.
+-- - Leer y escribir datos en LOBs.
+-- - Recortar (trim) y borrar (erase) LOBs.
+-- - Obtener la longitud de los LOBs.
+-- En este contexto, DBMS_LOB podría ser utilizado para realizar operaciones avanzadas con los LOBs almacenados en la tabla PRU_LOB.
+
+
+-- Crear o reemplazar una función llamada TAM que acepta dos parámetros: 
+-- DIRECTORIO de tipo VARCHAR2 y CODIGO de tipo NUMBER. La función devuelve un valor de tipo NUMBER.
+CREATE OR REPLACE FUNCTION TAM (DIRECTORIO VARCHAR2, CODIGO NUMBER)
+RETURN NUMBER
+IS
+    -- Declarar una variable FICHERO de tipo VARCHAR2(100) para almacenar el nombre del archivo.
+    FICHERO VARCHAR2(100);
+    -- Declarar una variable FOTO de tipo BFILE para almacenar el archivo binario.
+    FOTO BFILE;
+BEGIN
+    -- Asignar a FICHERO el nombre del archivo concatenando 'cliente', el valor de CODIGO y '.jpg'.
+    FICHERO := 'cliente' || CODIGO || '.jpg';
+    -- Asignar a FOTO el BFILE utilizando el nombre del directorio y el nombre del archivo.
+    FOTO := BFILENAME(DIRECTORIO, FICHERO);
+    -- Comprobar si el archivo existe utilizando la función DBMS_LOB.FILEEXISTS.
+    IF DBMS_LOB.FILEEXISTS(FOTO) = 1 THEN
+        -- Si el archivo existe, devolver la longitud del archivo utilizando la función DBMS_LOB.GETLENGTH.
+        RETURN DBMS_LOB.GETLENGTH(FOTO);
+    ELSE
+        -- Si el archivo no existe, devolver 0.
+        RETURN 0;
+    END IF;
+END;
+/
+-- Habilitar la salida del servidor para mostrar mensajes
+SET SERVEROUTPUT ON
+-- Ejecutar la función TAM con los parámetros 'FICHEROS' y 5, y mostrar el resultado utilizando DBMS_OUTPUT.PUT_LINE.
+EXECUTE DBMS_OUTPUT.PUT_LINE(TAM('FICHEROS', 5));
+
+
+-- Crear o reemplazar un procedimiento llamado CREAR_TABLA1 que acepta dos parámetros:
+-- NOMBRE_TABLA de tipo VARCHAR2 y COLUMNAS de tipo VARCHAR2. El procedimiento se ejecuta con los privilegios del usuario actual (AUTHID CURRENT_USER).
+CREATE OR REPLACE PROCEDURE CREAR_TABLA1(NOMBRE_TABLA VARCHAR2, COLUMNAS VARCHAR2) AUTHID CURRENT_USER
+IS
+    -- Declarar una variable COMANDO de tipo VARCHAR2(100) para almacenar el comando SQL.
+    COMANDO VARCHAR2(100);
+BEGIN
+    -- Construir el comando SQL para crear una tabla utilizando los parámetros NOMBRE_TABLA y COLUMNAS.
+    COMANDO := 'CREATE TABLE ' || NOMBRE_TABLA || '(' || COLUMNAS || ')';
+    -- Mostrar el comando SQL construido utilizando DBMS_OUTPUT.PUT_LINE para fines de depuración.
+    DBMS_OUTPUT.PUT_LINE(COMANDO);
+    -- Ejecutar el comando SQL construido utilizando EXECUTE IMMEDIATE.
+    EXECUTE IMMEDIATE COMANDO;
+END;
+/
+-- Habilitar la salida del servidor para mostrar mensajes.
+SET SERVEROUTPUT ON
+-- Ejecutar el procedimiento CREAR_TABLA1 con los parámetros 'PRU3' para el nombre de la tabla y 'CODIGO NUMBER, DATOS VARCHAR2(100)' para las columnas.
+EXECUTE CREAR_TABLA1('PRU3', 'CODIGO NUMBER, DATOS VARCHAR2(100)');
+
+
+-- NUMBER y se ejecuta con los privilegios del usuario actual (AUTHID CURRENT_USER).
+CREATE OR REPLACE FUNCTION EJEMPLO_DML(CONDICION VARCHAR2)
+RETURN NUMBER
+AUTHID CURRENT_USER
+IS
+    -- Declarar una variable COMANDO de tipo VARCHAR2(100) para almacenar el comando SQL.
+    COMANDO VARCHAR2(100);
+    -- Declarar una variable FILAS de tipo NUMBER para almacenar el número de filas afectadas.
+    FILAS NUMBER;
+BEGIN
+    -- Construir el comando SQL para eliminar registros de la tabla PRU1 utilizando la condición proporcionada.
+    COMANDO := 'DELETE FROM PRU1 WHERE ' || CONDICION;
+    -- Mostrar el comando SQL construido utilizando DBMS_OUTPUT.PUT_LINE para fines de depuración.
+    DBMS_OUTPUT.PUT_LINE(COMANDO);
+    -- Ejecutar el comando SQL construido utilizando EXECUTE IMMEDIATE.
+    EXECUTE IMMEDIATE COMANDO;
+    -- Obtener el número de filas afectadas por la última operación DML utilizando SQL%ROWCOUNT.
+    FILAS := SQL%ROWCOUNT;
+    -- Devolver el número de filas afectadas.
+    RETURN FILAS;
+END;
+/
+-- Declaración anónima para probar la función EJEMPLO_DML.
+DECLARE
+    -- Declarar una variable CONDICION de tipo VARCHAR2(100) para almacenar la condición de eliminación.
+    CONDICION VARCHAR2(100);
+    -- Declarar una variable NUM_FILAS de tipo NUMBER para almacenar el número de filas eliminadas.
+    NUM_FILAS NUMBER;
+BEGIN
+    -- Asignar una condición de eliminación a la variable CONDICION.
+    CONDICION := 'CODIGO = 1';
+    -- Llamar a la función EJEMPLO_DML con la condición proporcionada y almacenar el resultado en NUM_FILAS.
+    NUM_FILAS := EJEMPLO_DML(CONDICION);
+    -- Mostrar el número de filas eliminadas utilizando DBMS_OUTPUT.PUT_LINE.
+    DBMS_OUTPUT.PUT_LINE('SE HAN BORRADO ' || NUM_FILAS || ' FILAS');
+END;
+/
+
+
+-- Crear o reemplazar un procedimiento llamado PROC1
+CREATE OR REPLACE PROCEDURE PROC1
+IS
+    -- Declarar una variable V de tipo NUMBER e inicializarla con 0
+    V NUMBER := 0;
+BEGIN
+    -- Mostrar el valor inicial de V utilizando DBMS_OUTPUT.PUT_LINE
+    DBMS_OUTPUT.PUT_LINE(V);
+    -- Contar el número de registros en la tabla EMPLOYEES y almacenar el resultado en V
+    SELECT COUNT(*) INTO V FROM EMPLOYEES;
+    -- Mostrar el valor de V después de la consulta utilizando DBMS_OUTPUT.PUT_LINE
+    DBMS_OUTPUT.PUT_LINE(V);
+END;
+/
+-- Alterar el procedimiento PROC1 para compilarlo con opciones de depuración
+ALTER PROCEDURE PROC1 COMPILE DEBUG;
+-- Seleccionar configuraciones del objeto PL/SQL del usuario donde el nombre es 'PROC1'
+SELECT * FROM USER_PLSQL_OBJECT_SETTINGS WHERE NAME = 'PROC1';
+-- Alterar el procedimiento PROC1 para compilarlo sin opciones de depuración
+ALTER PROCEDURE PROC1 COMPILE;
+
+
+-- Crear una tabla llamada CONTROL_LOG para registrar eventos
+CREATE TABLE CONTROL_LOG
+(
+    EVENTO VARCHAR2(100),  -- Columna para almacenar el evento como una cadena de caracteres de hasta 100 caracteres
+    FECHA DATE DEFAULT SYSDATE  -- Columna para almacenar la fecha del evento, con valor predeterminado de la fecha actual del sistema
+);
+/
+-- Crear o reemplazar un trigger llamado BORRAR_OBJETO
+CREATE OR REPLACE TRIGGER BORRAR_OBJETO
+AFTER DROP  -- El trigger se activa después de que se elimina un objeto en el esquema
+ON SCHEMA
+BEGIN
+    -- Insertar un registro en la tabla CONTROL_LOG cuando se activa el trigger
+    INSERT INTO CONTROL_LOG (EVENTO) VALUES ('HEMOS BORRADO UN OBJETO '||ora_database_name);
+    -- 'ora_database_name' es una función de Oracle que devuelve el nombre de la base de datos actual
+END;
+/
+-- Crear una tabla llamada P1 con una columna CODIGO de tipo número
+CREATE TABLE P1 (CODIGO NUMBER);
+-- Eliminar la tabla P1
+DROP TABLE P1;
+-- Seleccionar todos los registros de la tabla CONTROL_LOG para ver los eventos registrados
+SELECT * FROM CONTROL_LOG;
+
+
+-- Crear una tabla llamada CONTROL_LOG para registrar eventos
+CREATE TABLE CONTROL_LOG
+(
+    EVENTO VARCHAR2(100),  -- Columna para almacenar el evento como una cadena de caracteres de hasta 100 caracteres
+    FECHA DATE DEFAULT SYSDATE  -- Columna para almacenar la fecha del evento, con valor predeterminado de la fecha actual del sistema
+);
+/
+-- Crear o reemplazar un trigger llamado BORRAR_OBJETO
+CREATE OR REPLACE TRIGGER BORRAR_OBJETO
+AFTER DROP  -- El trigger se activa después de que se elimina un objeto en el esquema
+ON SCHEMA
+BEGIN
+    -- Insertar un registro en la tabla CONTROL_LOG cuando se activa el trigger
+    INSERT INTO CONTROL_LOG (EVENTO) VALUES ('HEMOS BORRADO UN OBJETO LLAMADO '||ORA_DICT_OBJ_NAME||' DE TIPO '||ORA_DICT_OBJ_TYPE||' QUE PERTENECE AL USUARIO:'||ORA_DICT_OBJ_OWNER);
+    -- 'ORA_DICT_OBJ_NAME' es una función de Oracle que devuelve el nombre del objeto que se está eliminando
+    -- 'ORA_DICT_OBJ_TYPE' es una función de Oracle que devuelve el tipo de objeto que se está eliminando
+    -- 'ORA_DICT_OBJ_OWNER' es una función de Oracle que devuelve el nombre del propietario del objeto que se está eliminando
+END;
+/
+-- Crear una tabla llamada P1 con una columna CODIGO de tipo número
+CREATE TABLE P1 (CODIGO NUMBER);
+-- Eliminar la tabla P1
+DROP TABLE P1;
+-- Seleccionar todos los registros de la tabla CONTROL_LOG para ver los eventos registrados
+SELECT * FROM CONTROL_LOG;
+
+
+-- Crear una tabla llamada CONTROL_LOG para registrar eventos
+CREATE TABLE CONTROL_LOG
+(
+    EVENTO VARCHAR2(100),  -- Columna para almacenar el evento como una cadena de caracteres de hasta 100 caracteres
+    FECHA DATE DEFAULT SYSDATE  -- Columna para almacenar la fecha del evento, con valor predeterminado de la fecha actual del sistema
+);
+/
+-- Crear o reemplazar un trigger llamado BORRAR_OBJETO a nivel de esquema
+CREATE OR REPLACE TRIGGER BORRAR_OBJETO
+AFTER DROP  -- El trigger se activa después de que se elimina un objeto en el esquema
+ON SCHEMA
+BEGIN
+    -- Insertar un registro en la tabla CONTROL_LOG cuando se activa el trigger
+    INSERT INTO CONTROL_LOG (EVENTO) VALUES ('HEMOS BORRADO UN OBJETO A NIVEL DE SCHEMA LLAMADO '||ORA_DICT_OBJ_NAME||' DE TIPO '||ORA_DICT_OBJ_TYPE||' QUE PERTENECE AL USUARIO:'||ORA_DICT_OBJ_OWNER);
+    -- 'ORA_DICT_OBJ_NAME' devuelve el nombre del objeto que se está eliminando
+    -- 'ORA_DICT_OBJ_TYPE' devuelve el tipo de objeto que se está eliminando
+    -- 'ORA_DICT_OBJ_OWNER' devuelve el nombre del propietario del objeto que se está eliminando
+END;
+/
+-- Crear una tabla llamada P1 con una columna CODIGO de tipo número
+CREATE TABLE P1 (CODIGO NUMBER);
+-- Eliminar la tabla P1
+DROP TABLE P1;
+-- Seleccionar todos los registros de la tabla CONTROL_LOG para ver los eventos registrados
+SELECT * FROM CONTROL_LOG;
+-- Otorgar todos los privilegios sobre la tabla CONTROL_LOG al usuario SYSTEM
+GRANT ALL ON CONTROL_LOG TO SYSTEM;
+-----------------------
+-- Como usuario SYSTEM, crear o reemplazar un trigger llamado BORRAR_OBJETO a nivel de base de datos
+CREATE OR REPLACE TRIGGER BORRAR_OBJETO
+AFTER DROP  -- El trigger se activa después de que se elimina un objeto en la base de datos
+ON DATABASE
+BEGIN
+    -- Insertar un registro en la tabla HR.CONTROL_LOG cuando se activa el trigger
+    INSERT INTO HR.CONTROL_LOG (EVENTO) VALUES ('HEMOS BORRADO UN OBJETO A NIVEL DE DATABASE LLAMADO '||ORA_DICT_OBJ_NAME||' DE TIPO '||ORA_DICT_OBJ_TYPE||' QUE PERTENECE AL USUARIO:'||ORA_DICT_OBJ_OWNER);
+    -- 'HR.CONTROL_LOG' se refiere a la tabla CONTROL_LOG en el esquema HR
+END;
+/
+
+
+-- Crear una tabla llamada CONTROL_ERRORES para registrar errores del servidor
+CREATE TABLE CONTROL_ERRORES
+(
+    USUARIO VARCHAR2(100),        -- Columna para almacenar el nombre del usuario que causó el error
+    MENSAJE_ERROR VARCHAR2(100),  -- Columna para almacenar el mensaje de error
+    COMANDO_SQL VARCHAR2(1000),   -- Columna para almacenar el comando SQL que causó el error
+    FECHA DATE                    -- Columna para almacenar la fecha y hora del error
+);
+-- Crear o reemplazar un trigger llamado CAPTURAR_ERRORES a nivel de base de datos para capturar errores del servidor
+CREATE OR REPLACE TRIGGER CAPTURAR_ERRORES
+AFTER SERVERERROR ON DATABASE
+DECLARE
+    SQL_TEXT ORA_NAME_LIST_T;      -- Declarar una variable para almacenar el texto SQL asociado con el error
+    MENSAJE VARCHAR2(2000) := NULL; -- Declarar una variable para almacenar el mensaje de error
+    COMANDO VARCHAR2(200) := NULL;  -- Declarar una variable para almacenar el comando SQL que causó el error
+BEGIN
+    -- Recorrer la pila de errores del servidor para construir el mensaje de error completo
+    FOR X IN 1..ORA_SERVER_ERROR_DEPTH LOOP
+        MENSAJE := MENSAJE || ORA_SERVER_ERROR_MSG(X);
+    END LOOP;
+    -- Recorrer el texto SQL asociado con el error para construir el comando SQL completo
+    FOR I IN 1..ORA_SQL_TXT(SQL_TEXT) LOOP
+        COMANDO := COMANDO || SQL_TEXT(I);
+    END LOOP;
+    -- Insertar un registro en la tabla CONTROL_ERRORES con la información del error
+    INSERT INTO CONTROL_ERRORES (USUARIO, MENSAJE_ERROR, COMANDO_SQL, FECHA) 
+    VALUES (ORA_LOGIN_USER, MENSAJE, COMANDO, SYSDATE);
+END;
+/
+-- Ejecutar una consulta para seleccionar todos los registros de una tabla ficticia (XXXXX) para provocar un error
+SELECT * FROM XXXXX;
